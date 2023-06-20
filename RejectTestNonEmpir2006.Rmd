@@ -1,0 +1,96 @@
+---
+title: "RejectTestNonEmpir2006"
+output: html_document
+date: "2023-06-20"
+---
+
+```{r}
+rm(list=ls())
+source("RejectNonEmpir2006.R")
+library(extraDistr)
+
+```
+
+```{r}
+#1er point
+X <- c(1.5,2.35)
+#2eme point
+X2 <- c(3.75,4.2)
+```
+
+```{r}
+#Données
+
+#Taille de l'échantillon
+size <- 100
+n <- size+2
+#Variance du noyau
+r = 1.5; l =100; beta = 0.9; a = 1 ; b=5; c = 5; d =3
+
+```
+
+```{r}
+rep <- 1
+for (j in 1:rep) {
+  #Matrice des données
+  mat <- matrix(nrow = size+2,ncol = 3)
+  mat[1,] <- c(X,rbinom(1,1,alpha(X[1],X[2])))
+  mat[2,] <- c(X2,rbinom(1,1,alpha(X2[1],X2[2])))
+  #print(alpha(X[1],X[2]))
+  #Simulation séquentielle
+  for (i in 3:(size+2)) {
+    mat[i,c(1,2)] <- a.r(X=mat[i-1,1],Y=mat[i-1,2],r,mat=mat[1:i-1,],l,beta,a,b,c,d)
+    mat[i,3] <- rbinom(1,1,alpha(mat[i,1],mat[i,2]))
+    #print(i)
+  }
+}
+```
+# curve(dbeta(x, 6, 5), 0, 1, col = "red", add = TRUE, n = 500)
+```{r, echo=FALSE}
+df <- as.data.frame(mat)
+options(repr.plot.width=6,repr.plot.height=10)
+pl <- ggplot(df,aes(V1,V2),fig(10,10))
+#jpeg(file="Plot1906_25.jpeg")
+#pl+geom_point(aes(colour = factor(V3)))+geom_text(aes(label=1:(size+2)))+labs(title = TeX("r = 2; $\\theta$ = 0.05; l = 100; $\\beta$ = 0.9; p0 = 0.9; p1 = 0.4"))
+pl+geom_point(aes(colour = factor(V3)))+geom_text(aes(label=1:n))
+#dev.off()
+```
+
+```{r}
+source("StatDescr.R")
+```
+
+```{r}
+PI <- rep(0,times=size+1)
+FC <- rep(0,times=size+1)
+PZ <- rep(0,times=size+1)
+BUC <- rep(0,times=size+1)
+SL <- rep(0,times=size+1)
+CR <- rep(0,times=size+1)
+```
+
+```{r}
+#r <- 1.5
+W <- square(r=10)
+for (j in 2:n) {
+  PI[j-1] <- prop.infec(mat[1:(j),],R=r)
+  FC[j-1] <- first.contact(mat[1:(j),])
+  PZ[j-1] <- proper.zone(r,mat[1:(j),],W)
+  BUC[j-1] <- ball.union.cover(r,mat[1:(j),],W)
+  SL[j-1] <- scanpath.length(mat[1:(j),])
+  CR[j-1] <- cumul.recurr(r,mat[1:(j),])
+}
+```
+
+```{r}
+#jpeg(file="StatDescr1906_25.jpeg")
+par(mfrow=c(2,3))
+plot(PI)
+plot(FC)
+plot(PZ)
+plot(BUC)
+plot(SL)
+plot(CR)
+
+#dev.off()
+```
