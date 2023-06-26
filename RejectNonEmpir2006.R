@@ -12,12 +12,12 @@ calc.dist <- function(x,y,X,Y){
   return(sqrt((x-X)^2+(y-Y)^2))
 }
 
-alpha <- function(x,y){
+alpha1 <- function(x,y){
   res <- ((x-5)^2+(y-5)^2)
-  return(res/50)
+  return(res/(50))
 }
 
-alpha1 <- function(x,y){
+alpha <- function(x,y){
   res <- (x^2+y^2)
   return(res/200)
 }
@@ -60,7 +60,7 @@ a.r <- function(X,Y,r,mat,l,beta,a,b,c,d){
   upper_bound <- optim(par = c(X*0.9,Y*0.9),fn=function(M) target_density(M[1],M[2],X,Y,c,d)/proposal_density(M[1],M[2],X,Y),method="L-BFGS-B",lower = c(x.min,y.min),upper = c(x.max,y.max),control=list(fnscale = -1))$value
   found <- FALSE
   #print(upper_bound)
-  max.pi <- prob.acc(a,b)
+  max.pi <- (a/(a+b))^a*(b/(a+b))^b
   # Algo de rejet
   while(found == FALSE) {
     
@@ -94,3 +94,49 @@ a.r <- function(X,Y,r,mat,l,beta,a,b,c,d){
   }
   return(sample)
 }
+
+#ESTIMATION
+S1 <- function(mat,c,d){
+  n <- nrow(mat)
+  X1 <- mat[1:(n-1),1:2]
+  X2 <- mat[2:n,1:2]
+  Xdist <- calc.dist(X1[1],X1[2],X2[1],X2[2])
+  res <- log(1/(2*pi)*(Xdist^(c-2)*(1+Xdist^(-c-d)))/beta(c,d))
+  return(sum(res))
+}
+
+S2 <- function(mat,a,b){
+  n <- nrow(mat)
+  X <- mat[2:n,1:2]
+  Xalpha <- alpha(X[,1],X[,2])
+  res <- a*log(Xalpha)+b*log(1-Xalpha)
+  return(sum(res)-(n-1)*a*log(a/(a+b))+b*log(b/(a+b)))
+}
+
+integrand <- function(mat,x,y,a,b,c,d){
+  Xi <- tail(mat,n=1)[1]; Yi <- tail(mat,n=1)[2]
+  dis <- calc.dist(x,y,Xi,Yi)
+  max.pi <- (a/(a+b))^a*(b/(a+b))^b
+  res <- alpha(x,y)*1/(2*pi)*dis^(c-2)*(1+dis)^(-c-d)/beta(c,d)*alpha(x,y)^a*(1-alpha(x,y))^b/max.pi
+  return(res)
+}
+
+S3 <- function(mat,a,b,c,d){
+  s <- 0
+  n <- nrow(mat)-1
+  for (i in 2:(n-1)) {
+    s <- s+ log(calculus::integral(f=function(u,v) integrand(mat[1:i,],u,v,a,b,c,d),bounds=list(u=c(0,10),v=c(0,10)),relTol = 0.1,absTol = 1e-2)$value)
+  }
+  return(s)
+}
+
+loglik <- function(mat,a,b,c,d){
+  return(S1(mat,c,d)+S2(mat,a,b)-S3(mat,a,b,c,d))
+}
+
+
+
+
+
+
+

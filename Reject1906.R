@@ -55,7 +55,7 @@ a.r <- function(X,Y,r,mat,l,beta,a,b,c,d){
   upper_bound <- optim(par = c(X*0.9,Y*0.9),fn=function(M) target_density(M[1],M[2],X,Y,c,d)/proposal_density(M[1],M[2],X,Y),method="L-BFGS-B",lower = c(x.min,y.min),upper = c(x.max,y.max),control=list(fnscale = -1))$value
   found <- FALSE
   #print(upper_bound)
-  max.pi <- prob.acc(a,b)
+  max.pi <- (a/(a+b))^a*(b/(a+b))^b
   # Algo de rejet
   while(found == FALSE) {
     
@@ -79,15 +79,14 @@ a.r <- function(X,Y,r,mat,l,beta,a,b,c,d){
     #acceptance_prob <- target_density(candidate_x, candidate_y,X,Y)/upper_bound/proposal_density(candidate_x, candidate_y,X,Y)
     acceptance_prob <- target_density(candidate_x, candidate_y,X,Y,c,d)/upper_bound/proposal_density(candidate_x, candidate_y,X,Y)
     #max.pi <- prob.acc(a,b)#a,ballcover(candidate_x,candidate_y,mat,r,l,beta))
-    #prop <- ballcover(candidate_x,candidate_y,mat,r,l,beta)^a*(1-ballcover(candidate_x,candidate_y,mat,r,l,beta))^b/max.pi
-    prop <- dbeta(ballcover(candidate_x,candidate_y,mat,r,l,beta),shape1 = a,shape2 = b)
+    prop <- ballcover(candidate_x,candidate_y,mat,r,l,beta)^a*(1-ballcover(candidate_x,candidate_y,mat,r,l,beta))^b/max.pi
+    #prop <- dbeta(ballcover(candidate_x,candidate_y,mat,r,l,beta),shape1 = a,shape2 = b)
     if(runif(1) < acceptance_prob){
-      if(sum(inside.owin(x=mat[,1],y=mat[,2],disc(radius = r,centre = c(candidate_x,candidate_y))))<=4){
+      if(sum(inside.owin(x=mat[,1],y=mat[,2],disc(radius = r,centre = c(candidate_x,candidate_y))))<=5){
         sample <- c(candidate_x, candidate_y)
         found <- TRUE
       }else if (runif(1)< prop){
         sample <- c(candidate_x, candidate_y)
-        print(prop)
         found <- TRUE
       }
     }
