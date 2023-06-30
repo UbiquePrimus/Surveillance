@@ -1,0 +1,159 @@
+---
+title: "RejectTest290623"
+output: html_document
+date: "2023-06-29"
+---
+
+```{r}
+rm(list=ls())
+source("Reject290623.R")
+library(extraDistr)
+
+```
+
+```{r}
+#1er point
+X <- c(1.5,2.35)
+#2eme point
+X2 <- c(3.75,4.2)
+```
+
+```{r}
+#Données
+eps <- 0.1
+N <- 10
+tau <- -log(eps/(2-eps))/N
+
+#Taille de l'échantillon
+size <- 150
+n <- size+2
+#Variance du noyau
+r = 1.5; l =100; beta = 0.6; a = 10; b=7; c = 3; d =3#; tau =0.37
+
+```
+
+```{r}
+rep <- 1
+data <- c()
+for (j in 1:rep) {
+  #Matrice des données
+  mat <- matrix(nrow = size+2,ncol = 3)
+  mat[1,] <- c(X,rbinom(1,1,alpha(X[1],X[2])))
+  mat[2,] <- c(X2,rbinom(1,1,alpha(X2[1],X2[2])))
+  #print(alpha(X[1],X[2]))
+  #Simulation séquentielle
+  for (i in 3:(size+2)) {
+    sample <- a.r(X=mat[i-1,1],Y=mat[i-1,2],r,mat=mat[1:i-1,],l,beta,a,b,c,d,tau)
+    mat[i,c(1,2)] <- sample$point
+    mat[i,3] <- rbinom(1,1,alpha(mat[i,1],mat[i,2]))
+    data <- c(data,sample$prob)
+    print(i)
+  }
+}
+```
+
+
+# save(mat,file = "n200r1_5l100beta0_9a3b3c3d3.Rdata")
+# save(mat,file = "n150r1_5l100beta0_3a3b3c3d3.Rdata")
+# load("n200r1_5l100beta0_9a3b3c3d3.Rdata")
+# curve(dbeta(x, 6, 5), 0, 1, col = "red", add = TRUE, n = 500)
+# (c*(c+d-1))/((d-2)*(d-1)^2)
+```{r, echo=FALSE}
+df <- as.data.frame(mat)#[51:152,])
+options(repr.plot.width=6,repr.plot.height=10)
+pl <- ggplot(df,aes(V1,V2),fig(10,10))
+#jpeg(file="Plot1906_25.jpeg")
+#pl+geom_point(aes(colour = factor(V3)))+geom_text(aes(label=1:(size+2)))+labs(title = TeX("r = 2; $\\theta$ = 0.05; l = 100; $\\beta$ = 0.9; p0 = 0.9; p1 = 0.4"))
+pl+geom_point(aes(colour = factor(V3)))+geom_text(aes(label=1:152))
+#dev.off()
+```
+
+```{r}
+source("StatDescr.R")
+```
+
+```{r}
+PI <- rep(0,times=size+1)
+PIC <- rep(0,times=size+1)
+FC <- rep(0,times=size+1)
+PZ <- rep(0,times=size+1)
+BUC <- rep(0,times=size+1)
+SL <- rep(0,times=size+1)
+SLC <- rep(0,times=size+1)
+CR <- rep(0,times=size+1)
+```
+
+```{r}
+#r <- 1.5
+W <- square(r=10)
+for (j in 2:n) {
+  PI[j-1] <- prop.infec(mat[1:(j),],R=r)
+  PIC[j-1]<- infec.cumul(mat[1:(j),],R=r)
+  FC[j-1] <- first.contact(mat[1:(j),])
+  PZ[j-1] <- proper.zone(r,mat[1:(j),],W)
+  BUC[j-1] <- ball.union.cover(r,mat[1:(j),],W)
+  SL[j-1] <- scanpath.length(mat[1:(j),])
+  SLC[j-1] <- scanpath.length.cumul(mat[1:(j),])
+  CR[j-1] <- cumul.recurr(r,mat[1:(j),])
+}
+```
+
+```{r}
+#jpeg(file="StatDescr1906_25.jpeg")
+par(mfrow=c(2,3))
+#plot(PI)
+plot(PIC)
+plot(FC)
+plot(PZ)
+plot(BUC)
+#plot(SL)
+plot(SLC)
+plot(CR)
+
+#dev.off()
+```
+```{r}
+# Définition de la fonction à tracer
+my_function <- function(x,a,b) {
+  max.pi <- (a/(a+b))^a*(b/(a+b))^b
+  return(x^a*(1-x)^b/max.pi)
+}
+
+# Génération des valeurs x
+x <- seq(0, 1, length.out = 100)
+
+# Évaluation de la fonction sur les valeurs x
+y <- my_function(x,10,7)
+
+# Tracé du graphique de la fonction
+plot(x, y, type = "l", col = "blue", lwd = 2,
+     xlab = "X", ylab = "Y", main = "Graphique d'une fonction")
+
+# Données pour l'histogramme
+#data <- rnorm(1000)
+
+# Ajout de l'histogramme
+#hist(data,probability = TRUE)
+#lines(x,y)
+#hist(data, add = TRUE, col = "gray", border = "white", density = 10)
+
+
+```
+
+```{r}
+curve <- density(data,from = 0,to=1,na.rm=TRUE)
+#jpeg(file="ConvergencePropEmpirique.jpeg")
+plot(curve$x,curve$y,xlab = "p", ylab = "y", main="Densité Beta et proportion empirique")
+x <- seq(0, 1, length.out = 100)
+#y <- my_function(x,2,3)
+y <- dbeta(x,15,15)
+lines(x,y)
+#dev.off()
+```
+
+```{r}
+tic()
+ballcover(2.5,4,mat,1.5,100,0.9)
+toc()
+```
+
